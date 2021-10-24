@@ -13,11 +13,14 @@ find_package(catkin REQUIRED COMPONENTS
     nav_msgs
     tf
     cv_bridge
+    camera_model
+    roslib
+    agent_msg
     )
 
 find_package(OpenCV REQUIRED)
 
-# message(WARNING "OpenCV_VERSION: ${OpenCV_VERSION}")
+message(WARNING "OpenCV_VERSION: ${OpenCV_VERSION}")
 
 find_package(Ceres REQUIRED)
 
@@ -48,6 +51,9 @@ add_executable(vins_estimator
     src/initial/initial_aligment.cpp
     src/initial/initial_sfm.cpp
     src/initial/initial_ex_rotation.cpp
+    src/ThirdParty/DUtils/Random.cpp
+    src/ThirdParty/DUtils/Timestamp.cpp
+    src/ThirdParty/DVision/BRIEF.cpp
     )
 
 

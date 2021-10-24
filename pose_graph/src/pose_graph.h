@@ -8,6 +8,7 @@
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 #include <queue>
+#include <map>
 #include <assert.h>
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PointStamped.h>
@@ -23,7 +24,7 @@
 #include "ThirdParty/DVision/DVision.h"
 #include "ThirdParty/DBoW/TemplatedDatabase.h"
 #include "ThirdParty/DBoW/TemplatedVocabulary.h"
-
+#include <tf/transform_broadcaster.h>
 
 #define SHOW_S_EDGE false
 #define SHOW_L_EDGE true
@@ -38,10 +39,9 @@ public:
 	PoseGraph();
 	~PoseGraph();
 	void registerPub(ros::NodeHandle &n);
-	void addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
-	void loadKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
+	void addAgentFrame(KeyFrame* cur_kf);
+	void loadKeyFrame(KeyFrame* cur_kf);
 	void loadVocabulary(std::string voc_path);
-	void updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1 > &_loop_info);
 	KeyFrame* getKeyFrame(int index);
 	nav_msgs::Path path[10];
 	nav_msgs::Path base_path;
@@ -49,13 +49,7 @@ public:
 	void savePoseGraph();
 	void loadPoseGraph();
 	void publish();
-	Vector3d t_drift;
-	double yaw_drift;
-	Matrix3d r_drift;
-	// world frame( base sequence or first sequence)<----> cur sequence frame  
-	Vector3d w_t_vio;
-	Matrix3d w_r_vio;
-
+	void publishTF();
 
 private:
 	int detectLoop(KeyFrame* keyframe, int frame_index);
@@ -75,8 +69,7 @@ private:
 	vector<bool> sequence_loop;
 	map<int, cv::Mat> image_pool;
 	int earliest_loop_index;
-	int base_sequence;
-
+	
 	BriefDatabase db;
 	BriefVocabulary* voc;
 
@@ -84,6 +77,15 @@ private:
 	ros::Publisher pub_base_path;
 	ros::Publisher pub_pose_graph;
 	ros::Publisher pub_path[10];
+
+	//swarm variable
+	int first_sequence;
+	map<int, bool> sequence_align_world;
+	map<int, Eigen::Vector3d> sequence_t_drift_map;
+	map<int, Eigen::Vector3d> sequence_w_t_s_map;
+	map<int, Eigen::Matrix3d> sequence_r_drift_map;
+	map<int, Eigen::Matrix3d> sequence_w_r_s_map;
+	vector<KeyFrame*> keyframe_vec;
 };
 
 template <typename T>
@@ -204,7 +206,7 @@ struct FourDOFWeightError
 {
 	FourDOFWeightError(double t_x, double t_y, double t_z, double relative_yaw, double pitch_i, double roll_i)
 				  :t_x(t_x), t_y(t_y), t_z(t_z), relative_yaw(relative_yaw), pitch_i(pitch_i), roll_i(roll_i){
-				  	weight = 1;
+				  	weight = 0.1;
 				  }
 
 	template <typename T>

@@ -13,6 +13,9 @@ find_package(catkin REQUIRED COMPONENTS
     camera_model
     cv_bridge
     roslib
+    agent_msg
+    tf
+    visualization_msgs
     )
 
 find_package(OpenCV)
@@ -44,4 +47,4 @@ add_executable(pose_graph
     )
 
 target_link_libraries(pose_graph ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES}) 
-# message("catkin_lib  ${catkin_LIBRARIES}")
+message("catkin_lib  ${catkin_LIBRARIES}")

@@ -7,10 +7,14 @@
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
-
+#include <ros/package.h>
+#include <agent_msg/AgentMsg.h>
 #include "estimator.h"
 #include "parameters.h"
 #include "utility/visualization.h"
+#include "camodocal/camera_models/CameraFactory.h"
+#include "camodocal/camera_models/CataCamera.h"
+#include "camodocal/camera_models/PinholeCamera.h"
 
 
 Estimator estimator;
@@ -20,12 +24,14 @@ double current_time = -1;
 queue<sensor_msgs::ImuConstPtr> imu_buf;
 queue<sensor_msgs::PointCloudConstPtr> feature_buf;
 queue<sensor_msgs::PointCloudConstPtr> relo_buf;
+queue<sensor_msgs::ImageConstPtr> image_buf;
 int sum_of_wait = 0;
 
 std::mutex m_buf;
 std::mutex m_state;
 std::mutex i_buf;
 std::mutex m_estimator;
+std::mutex m_image_buf;
 
 double latest_time;
 Eigen::Vector3d tmp_P;
@@ -38,6 +44,14 @@ Eigen::Vector3d gyr_0;
 bool init_feature = 0;
 bool init_imu = 1;
 double last_imu_t = 0;
+
+camodocal::CameraPtr m_camera;
+std::string BRIEF_PATTERN_FILE;
+
+queue<agent_msg::AgentMsg> agent_msg_buf;
+std::mutex m_agent_msg_buf;
+
+Vector3d last_agent_t(0,0,0);
 
 void predict(const sensor_msgs::ImuConstPtr &imu_msg)
 {
@@ -161,6 +175,12 @@ void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg)
     }
 }
 
+void image_callback(const sensor_msgs::ImageConstPtr &img_msg)
+{
+    m_image_buf.lock();
+    image_buf.push(img_msg);
+    m_image_buf.unlock();
+}
 
 void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg)
 {
@@ -192,7 +212,6 @@ void restart_callback(const std_msgs::BoolConstPtr &restart_msg)
         estimator.setParameter();
         m_estimator.unlock();
         current_time = -1;
-        last_imu_t = 0;
     }
     return;
 }
@@ -290,8 +309,6 @@ void process()
                 estimator.setReloFrame(frame_stamp, frame_index, match_points, relo_t, relo_r);
             }
 
-            ROS_DEBUG("processing vision data with stamp %f \n", img_msg->header.stamp.toSec());
-
             TicToc t_s;
             map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> image;
             for (unsigned int i = 0; i < img_msg->points.size(); i++)
@@ -323,9 +340,29 @@ void process()
             pubCameraPose(estimator, header);
             pubPointCloud(estimator, header);
             pubTF(estimator, header);
+
             pubKeyframe(estimator);
             if (relo_msg != NULL)
                 pubRelocalization(estimator);
+
+            if (SWARM_AGENT)
+            {
+                if (estimator.solver_flag == Estimator::SolverFlag::NON_LINEAR && estimator.marginalization_flag == 0)
+                {
+                    Vector3d tmp_agent_t = estimator.Ps[WINDOW_SIZE - 2];
+                    if ((tmp_agent_t - last_agent_t).norm() > 0.05)
+                    {
+                        TicToc pubAgentFrame_time;
+                        agent_msg::AgentMsg agent_frame_msg;
+                        preprocessAgentFrame(estimator, agent_frame_msg);
+                        m_agent_msg_buf.lock();
+                        agent_msg_buf.push(agent_frame_msg);
+                        m_agent_msg_buf.unlock();
+                        //ROS_WARN("preprocess agent frame time %f", pubAgentFrame_time.toc());
+                        last_agent_t = tmp_agent_t;
+                    }
+                }
+            }
             //ROS_ERROR("end: %f, at %f", img_msg->header.stamp.toSec(), ros::Time::now().toSec());
         }
         m_estimator.unlock();
@@ -335,14 +372,79 @@ void process()
             update();
         m_state.unlock();
         m_buf.unlock();
+        std::chrono::milliseconds dura(1);
+        std::this_thread::sleep_for(dura);
     }
 }
+
+void agent_process()
+{
+    while(1)
+    {
+        m_agent_msg_buf.lock();
+        agent_msg::AgentMsg tmp_msg;
+        bool pub_flag = false;
+        while (!agent_msg_buf.empty())
+        {
+            tmp_msg = agent_msg_buf.front();
+            agent_msg_buf.pop();
+            pub_flag = true;
+        }
+        m_agent_msg_buf.unlock();
+
+        if (pub_flag)
+        {
+            TicToc pubAgentFrame_time;
+            sensor_msgs::ImageConstPtr image_msg = NULL;
+            m_image_buf.lock();
+            while(!image_buf.empty() && image_buf.front()->header.stamp.toSec() < tmp_msg.header.stamp.toSec())
+                image_buf.pop();
+            if (!image_buf.empty())
+            {
+                image_msg = image_buf.front();
+            }
+            m_image_buf.unlock();
+            if (image_msg == NULL || image_msg->header.stamp.toSec() != tmp_msg.header.stamp.toSec())
+            {
+                ROS_WARN("can not find corresponding image");
+            }
+            else
+            {
+                cv_bridge::CvImageConstPtr ptr;
+                if (image_msg->encoding == "8UC1")
+                {
+                    sensor_msgs::Image img;
+                    img.header = image_msg->header;
+                    img.height = image_msg->height;
+                    img.width = image_msg->width;
+                    img.is_bigendian = image_msg->is_bigendian;
+                    img.step = image_msg->step;
+                    img.data = image_msg->data;
+                    img.encoding = "mono8";
+                    ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
+                }
+                else
+                    ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
+
+                cv::Mat img = ptr->image;
+                pubAgentFrame(tmp_msg, img, m_camera);
+            }
+            //ROS_WARN("pub agent frame time %f", pubAgentFrame_time.toc());
+
+        }
+        std::chrono::milliseconds dura(5);
+        std::this_thread::sleep_for(dura);
+    }
+}
+
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "vins_estimator");
-    ros::NodeHandle n("~");
+    ros::NodeHandle n;
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
+    std::string config_file;
+    n.getParam("config_file", config_file);
     readParameters(n);
     estimator.setParameter();
 #ifdef EIGEN_DONT_PARALLELIZE
@@ -353,11 +455,23 @@ int main(int argc, char **argv)
     registerPub(n);
 
     ros::Subscriber sub_imu = n.subscribe(IMU_TOPIC, 2000, imu_callback, ros::TransportHints().tcpNoDelay());
-    ros::Subscriber sub_image = n.subscribe("/feature_tracker/feature", 2000, feature_callback);
-    ros::Subscriber sub_restart = n.subscribe("/feature_tracker/restart", 2000, restart_callback);
+    ros::Subscriber sub_feature = n.subscribe("feature_tracker/feature", 2000, feature_callback);
+    ros::Subscriber sub_restart = n.subscribe("feature_tracker/restart", 2000, restart_callback);
     ros::Subscriber sub_relo_points = n.subscribe("/pose_graph/match_points", 2000, relocalization_callback);
 
     std::thread measurement_process{process};
+    ros::Subscriber sub_image;
+    std::thread agent_process_thread;
+    if (SWARM_AGENT)
+    {
+        ROS_INFO("start swarm mode");
+        sub_image = n.subscribe(IMAGE_TOPIC, 2000, image_callback);
+        m_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(config_file.c_str());
+        std::string pkg_path = ros::package::getPath("vins_estimator");
+        BRIEF_PATTERN_FILE = pkg_path + "/../support_files/brief_pattern.yml";
+        agent_process_thread = std::thread(agent_process);
+    }
+
     ros::spin();
 
     return 0;

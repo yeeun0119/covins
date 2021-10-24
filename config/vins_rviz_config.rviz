@@ -3,7 +3,8 @@ Panels:
     Help Height: 0
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /pose_graph1
       Splitter Ratio: 0.465115994
     Tree Height: 221
   - Class: rviz/Selection
@@ -85,7 +86,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /feature_tracker/feature_img
+      Image Topic: /agent0/feature_tracker/feature_img
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -222,7 +223,7 @@ Visualization Manager:
           Buffer Length: 1
           Class: rviz/Path
           Color: 0; 255; 0
-          Enabled: true
+          Enabled: false
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -240,12 +241,12 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /pose_graph/pose_graph_path
           Unreliable: false
-          Value: true
+          Value: false
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
           Color: 255; 170; 0
-          Enabled: true
+          Enabled: false
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -263,7 +264,7 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /pose_graph/base_path
           Unreliable: false
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: true
           Marker Topic: /pose_graph/pose_graph
@@ -327,7 +328,7 @@ Visualization Manager:
           Buffer Length: 1
           Class: rviz/Path
           Color: 255; 0; 0
-          Enabled: true
+          Enabled: false
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -345,12 +346,12 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /pose_graph/path_2
           Unreliable: false
-          Value: true
+          Value: false
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
           Color: 0; 85; 255
-          Enabled: true
+          Enabled: false
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -368,12 +369,12 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /pose_graph/path_3
           Unreliable: false
-          Value: true
+          Value: false
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
           Color: 255; 170; 0
-          Enabled: true
+          Enabled: false
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -391,12 +392,12 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /pose_graph/path_4
           Unreliable: false
-          Value: true
+          Value: false
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
           Color: 255; 170; 255
-          Enabled: true
+          Enabled: false
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -414,12 +415,12 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /pose_graph/path_5
           Unreliable: false
-          Value: true
+          Value: false
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
           Color: 25; 255; 0
-          Enabled: true
+          Enabled: false
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -437,7 +438,7 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /pose_graph/no_loop_path
           Unreliable: false
-          Value: true
+          Value: false
       Enabled: true
       Name: pose_graph
   Enabled: true
@@ -462,25 +463,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 20.9684067
+      Distance: 30.4377041
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -2.7069304
-        Y: -1.26974416
+        X: -2.53234768
+        Y: -0.365348458
         Z: 2.1410624e-05
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 1.0797962
+      Pitch: 0.889796376
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 3.08722663
+      Yaw: 3.12722707
     Saved: ~
 Window Geometry:
   Displays:
@@ -498,8 +499,8 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1390
-  X: 2127
-  Y: 109
+  X: 2130
+  Y: 98
   loop_match_image:
     collapsed: false
   raw_image:
