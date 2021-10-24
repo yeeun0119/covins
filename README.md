@@ -1,4 +1,6 @@
-# Co-VINS
+# Co-VINS (code from https://github.com/qintonguav/Co-VINS)
+ : this repository is for studying
+ 
 ## Collaborative Localization for Multiple Monocular Visual-Inertial Systems
 
 Co-VINS a collaborative localization framework for multiple robots using monocular visual-inertial systems (VINS). Unlike traditional swarm applications which rely on external position equipment (GPS or Motion Capture System), our system achieves globally consistent localization based on internal sensors (onboard camera and IMU). Each robot is equipped with one camera and one IMU. It estimates own pose onboard and sends visual information to a centralized ground station. The ground station collects collaborative information from all robots, and maintains a globally consistent coordinate by pose graph optimization. Then the global localization is feedbacked to each robot for global control purpose. The ground station not only aligns all robots in a global coordinate, but also correct accumulated drifts for each robot. Co-VINS is an extension of [VINS-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono).
